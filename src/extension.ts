@@ -1,0 +1,20 @@
+import { joinSession } from "@github/copilot-sdk/extension";
+import { discoverLocalProviders } from "./local-providers.js";
+
+const configuration = await discoverLocalProviders();
+const session = await joinSession();
+
+void (async () => {
+  try {
+    const result = await session.rpc.provider.add(configuration);
+    await session.log(
+      `Registered ${result.models.length} local model(s).`,
+      { level: "info" },
+    );
+  } catch (error) {
+    await session.log(
+      `Local model registration failed: ${error instanceof Error ? error.message : String(error)}`,
+      { level: "error" },
+    );
+  }
+})();
