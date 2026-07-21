@@ -1,125 +1,40 @@
 // src/extension.ts
 import { joinSession } from "@github/copilot-sdk/extension";
 
-// src/local-provider-types.ts
+// src/providers/types.ts
 var DEFAULT_CONTEXT_WINDOW_TOKENS = 131072;
 var DEFAULT_MAX_OUTPUT_TOKENS = 32768;
-
-// src/local-provider-discoverers.ts
 var DISCOVERY_TIMEOUT_MS = 3000;
-async function discoverOllama(environment, fetchImplementation) {
-  return discoverTagProvider({
-    displayName: "Ollama",
-    name: "ollama",
-    endpoint: baseUrl(environment.OLLAMA_BASE_URL, "http://localhost:11434"),
-    apiKey: environment.OLLAMA_API_KEY,
-    limits: localLimits(environment.OLLAMA_CONTEXT_LENGTH),
-    fetchImplementation
-  });
-}
-async function discoverLmStudio(environment, fetchImplementation) {
-  const endpoint = baseUrl(environment.LMSTUDIO_BASE_URL, "http://localhost:1234");
-  const apiKey = environment.LMSTUDIO_API_KEY;
-  const payload = await fetchJson("LM Studio", `${endpoint}/api/v1/models`, apiKey, fetchImplementation);
-  if (!isRecord(payload) || !Array.isArray(payload.models)) {
-    return;
-  }
-  const models = payload.models.flatMap((model) => {
-    if (!isRecord(model) || typeof model.key !== "string") {
-      return [];
-    }
-    const maxContextWindowTokens = positiveInteger(model.max_context_length) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
-    return [{
-      id: model.key,
-      name: typeof model.display_name === "string" ? model.display_name : model.key,
-      maxContextWindowTokens,
-      maxOutputTokens: maxOutputTokens(maxContextWindowTokens)
-    }];
-  });
-  return createProvider("lmstudio", endpoint, apiKey, models);
-}
-async function discoverOmlx(environment, fetchImplementation) {
-  const endpoint = baseUrl(environment.OMLX_BASE_URL, "http://localhost:8000");
-  const apiKey = environment.OMLX_API_KEY;
-  const payload = await fetchJson("OMLX", `${endpoint}/admin/api/models`, apiKey, fetchImplementation);
-  if (!isRecord(payload) || !Array.isArray(payload.models)) {
-    return;
-  }
-  const models = payload.models.flatMap((model) => {
-    if (!isRecord(model) || typeof model.id !== "string" || model.model_type !== "llm" && model.model_type !== "vlm") {
-      return [];
-    }
-    return [{
-      id: model.id,
-      name: typeof model.display_name === "string" ? model.display_name : model.id,
-      maxContextWindowTokens: DEFAULT_CONTEXT_WINDOW_TOKENS,
-      maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS,
-      capabilities: model.model_type === "vlm" ? { supports: { vision: true } } : undefined
-    }];
-  });
-  return createProvider("omlx-local", endpoint, apiKey, models);
-}
-async function discoverOsaurus(environment, fetchImplementation) {
-  return discoverTagProvider({
-    displayName: "OSaurus",
-    name: "osaurus",
-    endpoint: baseUrl(environment.OSAURUS_BASE_URL ?? environment.OSARAUS_BASE_URL, "http://localhost:1337"),
-    apiKey: environment.OSAURUS_API_KEY ?? environment.OSARAUS_API_KEY,
-    limits: localLimits(environment.OSAURUS_CONTEXT_LENGTH ?? environment.OSARAUS_CONTEXT_LENGTH),
-    fetchImplementation
-  });
-}
-async function discoverTagProvider({
-  displayName,
-  name,
-  endpoint,
-  apiKey,
-  limits,
-  fetchImplementation
-}) {
-  const payload = await fetchJson(displayName, `${endpoint}/api/tags`, apiKey, fetchImplementation);
-  if (!isRecord(payload) || !Array.isArray(payload.models)) {
-    return;
-  }
-  const models = payload.models.flatMap((model) => {
-    if (!isRecord(model) || typeof model.name !== "string") {
-      return [];
-    }
-    return [{
-      id: model.name,
-      name: typeof model.model === "string" ? model.model : model.name,
-      ...limits
-    }];
-  });
-  return createProvider(name, endpoint, apiKey, models);
-}
-function createProvider(name, endpoint, apiKey, models) {
-  return models.length === 0 ? undefined : {
-    name,
-    baseUrl: `${endpoint}/v1`,
-    apiKey,
-    models
-  };
-}
-function localLimits(contextLength) {
-  const maxContextWindowTokens = positiveInteger(contextLength) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
-  return {
-    maxContextWindowTokens,
-    maxOutputTokens: maxOutputTokens(maxContextWindowTokens)
-  };
-}
-function maxOutputTokens(contextWindow) {
-  return Math.min(DEFAULT_MAX_OUTPUT_TOKENS, Math.floor(contextWindow / 4));
-}
 function baseUrl(value, fallback) {
   return (value ?? fallback).replace(/\/+$/, "");
 }
-function positiveInteger(value) {
-  if (typeof value !== "number" && typeof value !== "string") {
+function modelConfig(provider, id, name, maxContextWindowTokens, maxOutputTokens, capabilities) {
+  return {
+    id,
+    provider,
+    name,
+    maxContextWindowTokens,
+    maxPromptTokens: maxContextWindowTokens,
+    maxOutputTokens,
+    capabilities
+  };
+}
+function providerConfig(name, endpoint, apiKey, models) {
+  if (models.length === 0)
     return;
-  }
+  return {
+    provider: { name, baseUrl: `${endpoint}/v1`, apiKey, wireApi: "completions" },
+    models
+  };
+}
+function positiveInteger(value) {
+  if (typeof value !== "number" && typeof value !== "string")
+    return;
   const parsed = Number.parseInt(String(value), 10);
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+function maxOutputTokens(contextWindow) {
+  return Math.min(DEFAULT_MAX_OUTPUT_TOKENS, Math.floor(contextWindow / 4));
 }
 function isRecord(value) {
   return typeof value === "object" && value !== null;
@@ -141,36 +56,85 @@ async function fetchJson(provider, url, apiKey, fetchImplementation) {
   }
 }
 
+// src/providers/lmstudio.ts
+async function discoverLmStudio(environment, fetchImplementation) {
+  const name = "lmstudio";
+  const endpoint = baseUrl(environment.LMSTUDIO_BASE_URL, "http://localhost:1234");
+  const apiKey = environment.LMSTUDIO_API_KEY ?? "lmstudio";
+  const payload = await fetchJson("LM Studio", `${endpoint}/api/v1/models`, apiKey, fetchImplementation);
+  if (!isRecord(payload) || !Array.isArray(payload.models))
+    return;
+  const models = payload.models.flatMap((model) => {
+    if (!isRecord(model) || typeof model.key !== "string")
+      return [];
+    const contextWindow = positiveInteger(model.max_context_length) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
+    return [modelConfig(name, model.key, typeof model.display_name === "string" ? model.display_name : model.key, contextWindow, maxOutputTokens(contextWindow))];
+  });
+  return providerConfig(name, endpoint, apiKey, models);
+}
+
+// src/providers/ollama.ts
+async function discoverOllama(environment, fetchImplementation) {
+  const name = "ollama";
+  const endpoint = baseUrl(environment.OLLAMA_BASE_URL, "http://localhost:11434");
+  const apiKey = environment.OLLAMA_API_KEY ?? "ollama";
+  const payload = await fetchJson("Ollama", `${endpoint}/api/tags`, apiKey, fetchImplementation);
+  if (!isRecord(payload) || !Array.isArray(payload.models))
+    return;
+  const contextWindow = positiveInteger(environment.OLLAMA_CONTEXT_LENGTH) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
+  const models = payload.models.flatMap((model) => {
+    if (!isRecord(model) || typeof model.name !== "string")
+      return [];
+    return [modelConfig(name, model.name, typeof model.model === "string" ? model.model : model.name, contextWindow, maxOutputTokens(contextWindow))];
+  });
+  return providerConfig(name, endpoint, apiKey, models);
+}
+
+// src/providers/omlx.ts
+async function discoverOmlx(environment, fetchImplementation) {
+  const name = "omlx-local";
+  const endpoint = baseUrl(environment.OMLX_BASE_URL, "http://localhost:8000");
+  const apiKey = environment.OMLX_API_KEY ?? "omlx";
+  const payload = await fetchJson("OMLX", `${endpoint}/v1/models/status`, apiKey, fetchImplementation);
+  if (!isRecord(payload) || !Array.isArray(payload.models))
+    return;
+  const models = payload.models.flatMap((model) => {
+    if (!isRecord(model) || typeof model.id !== "string" || model.model_type !== "llm" && model.model_type !== "vlm" || model.engine_type === "batched")
+      return [];
+    const contextWindow = positiveInteger(model.max_context_window) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
+    return [modelConfig(name, model.id, typeof model.display_name === "string" ? model.display_name : model.id, contextWindow, positiveInteger(model.max_tokens) ?? DEFAULT_MAX_OUTPUT_TOKENS, model.model_type === "vlm" ? { supports: { vision: true } } : undefined)];
+  });
+  return providerConfig(name, endpoint, apiKey, models);
+}
+
+// src/providers/osaurus.ts
+async function discoverOsaurus(environment, fetchImplementation) {
+  const name = "osaurus";
+  const endpoint = baseUrl(environment.OSAURUS_BASE_URL ?? environment.OSARAUS_BASE_URL, "http://localhost:1337");
+  const apiKey = environment.OSAURUS_API_KEY ?? environment.OSARAUS_API_KEY ?? "osaurus";
+  const payload = await fetchJson("OSaurus", `${endpoint}/api/tags`, apiKey, fetchImplementation);
+  if (!isRecord(payload) || !Array.isArray(payload.models))
+    return;
+  const contextWindow = positiveInteger(environment.OSAURUS_CONTEXT_LENGTH ?? environment.OSARAUS_CONTEXT_LENGTH) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
+  const models = payload.models.flatMap((model) => {
+    if (!isRecord(model) || typeof model.name !== "string")
+      return [];
+    return [modelConfig(name, model.name, typeof model.model === "string" ? model.model : model.name, contextWindow, maxOutputTokens(contextWindow))];
+  });
+  return providerConfig(name, endpoint, apiKey, models);
+}
+
 // src/local-providers.ts
 async function discoverLocalProviders(environment = process.env, fetchImplementation = fetch) {
-  const discoveredProviders = (await Promise.all([
+  const discovered = (await Promise.all([
     discoverOllama(environment, fetchImplementation),
     discoverLmStudio(environment, fetchImplementation),
     discoverOmlx(environment, fetchImplementation),
     discoverOsaurus(environment, fetchImplementation)
   ])).filter((provider) => provider !== undefined);
   return {
-    providers: discoveredProviders.map(({ name, baseUrl: baseUrl2, apiKey }) => ({
-      name,
-      baseUrl: baseUrl2,
-      apiKey,
-      wireApi: "completions"
-    })),
-    models: discoveredProviders.flatMap(({ name: provider, models }) => models.map(({
-      id,
-      name,
-      maxContextWindowTokens,
-      maxOutputTokens: maxOutputTokens2,
-      capabilities
-    }) => ({
-      id,
-      provider,
-      name,
-      maxContextWindowTokens,
-      maxPromptTokens: maxContextWindowTokens,
-      maxOutputTokens: maxOutputTokens2,
-      capabilities
-    })))
+    providers: discovered.map(({ provider }) => provider),
+    models: discovered.flatMap(({ models }) => models)
   };
 }
 

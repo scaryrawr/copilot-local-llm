@@ -16,13 +16,20 @@ describe("discoverLocalProviders", () => {
           }],
         });
       }
-      if (url === "http://localhost:8000/admin/api/models") {
+      if (url === "http://localhost:8000/v1/models/status") {
         return jsonResponse({
           models: [
             {
               id: "mlx-vlm",
               display_name: "MLX Vision Model",
               model_type: "vlm",
+              max_context_window: 65_536,
+              max_tokens: 16_384,
+            },
+            {
+              id: "mlx-helper",
+              model_type: "llm",
+              engine_type: "batched",
             },
             {
               id: "mlx-embed",
@@ -65,8 +72,8 @@ describe("discoverLocalProviders", () => {
         id: "mlx-vlm",
         provider: "omlx-local",
         name: "MLX Vision Model",
-        maxContextWindowTokens: 131_072,
-        maxOutputTokens: 32_768,
+        maxContextWindowTokens: 65_536,
+        maxOutputTokens: 16_384,
         capabilities: { supports: { vision: true } },
       },
       {
@@ -85,7 +92,7 @@ describe("discoverLocalProviders", () => {
       expect.objectContaining({ headers: { Authorization: "Bearer lmstudio-token" } }),
     );
     expect(fetchImplementation).toHaveBeenCalledWith(
-      "http://localhost:8000/admin/api/models",
+      "http://localhost:8000/v1/models/status",
       expect.objectContaining({ headers: { Authorization: "Bearer omlx-token" } }),
     );
     expect(fetchImplementation).toHaveBeenCalledWith(

@@ -12,7 +12,7 @@ through `/model` as `provider/model-id` (for example,
 | --- | --- | --- |
 | Ollama | `http://localhost:11434` | `/api/tags` |
 | LM Studio | `http://localhost:1234` | `/api/v1/models` |
-| OMLX | `http://localhost:8000` | `/admin/api/models` |
+| OMLX | `http://localhost:8000` | `/v1/models/status` |
 | OSaurus | `http://localhost:1337` | `/api/tags` |
 
 Set `<PROVIDER>_BASE_URL` to override a default server URL, and optionally set
