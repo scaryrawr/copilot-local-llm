@@ -8,6 +8,11 @@ Discovered models are registered in the active session, making them available
 through `/model` as `provider/model-id` (for example,
 `omlx-local/Qwen3.5-9B-mxfp4`).
 
+When one of these local models is selected, the extension replaces Copilot's
+largest built-in system-prompt sections with a compact coding-agent prompt.
+Project instructions, runtime context, and environment context remain available.
+Switching back to a Copilot-hosted model restores the standard prompt.
+
 | Provider | Default URL | Discovery endpoint |
 | --- | --- | --- |
 | Ollama | `http://localhost:11434` | `/api/tags` |

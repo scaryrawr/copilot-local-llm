@@ -138,14 +138,79 @@ async function discoverLocalProviders(environment = process.env, fetchImplementa
   };
 }
 
+// src/system-prompt.ts
+var LOCAL_PROVIDER_NAMES = new Set(["ollama", "lmstudio", "omlx-local", "osaurus"]);
+var MINIMAL_IDENTITY = [
+  "You are GitHub Copilot CLI, an expert coding agent.",
+  "Use the available tools to inspect, edit, and validate the current workspace.",
+  "Follow the user's request and project instructions. Be concise and continue until the task is complete."
+].join(" ");
+var MINIMAL_SAFETY = [
+  "Do not expose secrets.",
+  "Do not perform destructive actions without explicit user approval."
+].join(" ");
+var LOCAL_SECTION_CONTENT = {
+  identity: MINIMAL_IDENTITY,
+  preamble: MINIMAL_IDENTITY,
+  tone: "",
+  tool_efficiency: "",
+  code_change_rules: "",
+  guidelines: "",
+  safety: MINIMAL_SAFETY,
+  tool_instructions: "",
+  last_instructions: ""
+};
+
+class LocalModelPromptController {
+  localModelSelected = false;
+  setModel(modelId) {
+    this.localModelSelected = isLocalModel(modelId);
+  }
+  createSystemMessage() {
+    return {
+      mode: "customize",
+      sections: Object.fromEntries(Object.entries(LOCAL_SECTION_CONTENT).map(([section, content]) => [
+        section,
+        {
+          action: (currentContent) => this.localModelSelected ? content : currentContent
+        }
+      ]))
+    };
+  }
+}
+function isLocalModel(modelId) {
+  if (!modelId) {
+    return false;
+  }
+  const separator = modelId.indexOf("/");
+  return separator > 0 && LOCAL_PROVIDER_NAMES.has(modelId.slice(0, separator));
+}
+
 // src/extension.ts
-var configuration = await discoverLocalProviders();
-var session = await joinSession();
+var configuration = discoverLocalProviders();
+var promptController = new LocalModelPromptController;
+var session = await joinSession({
+  systemMessage: promptController.createSystemMessage()
+});
+session.on("session.model_change", (event) => {
+  promptController.setModel(event.data.newModel);
+});
 (async () => {
   try {
-    const result = await session.rpc.provider.add(configuration);
-    await session.log(`Registered ${result.models.length} local model(s).`, { level: "info" });
+    const result = await session.rpc.provider.add(await configuration);
+    await session.log(`Registered ${result.models.length} local model(s).`, {
+      level: "info",
+      ephemeral: true
+    });
   } catch (error) {
-    await session.log(`Local model registration failed: ${error instanceof Error ? error.message : String(error)}`, { level: "error" });
+    await session.log(`Local model registration failed: ${error instanceof Error ? error.message : String(error)}`, { level: "error", ephemeral: true });
+  }
+})();
+(async () => {
+  try {
+    const currentModel = await session.rpc.model.getCurrent();
+    promptController.setModel(currentModel.modelId);
+  } catch (error) {
+    await session.log(`Local prompt model detection failed: ${error instanceof Error ? error.message : String(error)}`, { level: "warning", ephemeral: true });
   }
 })();
