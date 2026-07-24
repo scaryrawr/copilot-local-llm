@@ -10,11 +10,13 @@ import {
   type FetchImplementation,
 } from "./types.js";
 
+export const LMSTUDIO_PROVIDER_NAME = "lmstudio";
+
 export async function discoverLmStudio(
   environment: NodeJS.ProcessEnv,
   fetchImplementation: FetchImplementation,
 ) {
-  const name = "lmstudio";
+  const name = LMSTUDIO_PROVIDER_NAME;
   const endpoint = baseUrl(environment.LMSTUDIO_BASE_URL, "http://localhost:1234");
   const apiKey = environment.LMSTUDIO_API_KEY ?? "lmstudio";
   const payload = await fetchJson(
@@ -27,15 +29,17 @@ export async function discoverLmStudio(
 
   const models = payload.models.flatMap((model) => {
     if (!isRecord(model) || typeof model.key !== "string") return [];
-    const contextWindow = positiveInteger(model.max_context_length)
-      ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
-    return [modelConfig(
-      name,
-      model.key,
-      typeof model.display_name === "string" ? model.display_name : model.key,
-      contextWindow,
-      maxOutputTokens(contextWindow),
-    )];
+    const contextWindow =
+      positiveInteger(model.max_context_length) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
+    return [
+      modelConfig(
+        name,
+        model.key,
+        typeof model.display_name === "string" ? model.display_name : model.key,
+        contextWindow,
+        maxOutputTokens(contextWindow),
+      ),
+    ];
   });
 
   return providerConfig(name, endpoint, apiKey, models);

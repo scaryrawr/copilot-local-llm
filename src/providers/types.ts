@@ -4,10 +4,7 @@ export const DEFAULT_CONTEXT_WINDOW_TOKENS = 131_072;
 export const DEFAULT_MAX_OUTPUT_TOKENS = 32_768;
 const DISCOVERY_TIMEOUT_MS = 3_000;
 
-export type FetchImplementation = (
-  url: string,
-  init?: RequestInit,
-) => Promise<Response>;
+export type FetchImplementation = (url: string, init?: RequestInit) => Promise<Response>;
 
 export interface LocalProvider {
   provider: NamedProviderConfig;

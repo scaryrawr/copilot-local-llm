@@ -6,19 +6,14 @@ endpoint is available, so Copilot-hosted models continue to work normally.
 Discovery requests time out after three seconds to avoid delaying session joins.
 Discovered models are registered in the active session, making them available
 through `/model` as `provider/model-id` (for example,
-`omlx-local/Qwen3.5-9B-mxfp4`).
+`omlx/Qwen3.5-9B-mxfp4`).
 
-When one of these local models is selected, the extension replaces Copilot's
-largest built-in system-prompt sections with a compact coding-agent prompt.
-Project instructions, runtime context, and environment context remain available.
-Switching back to a Copilot-hosted model restores the standard prompt.
-
-| Provider | Default URL | Discovery endpoint |
-| --- | --- | --- |
-| Ollama | `http://localhost:11434` | `/api/tags` |
-| LM Studio | `http://localhost:1234` | `/api/v1/models` |
-| OMLX | `http://localhost:8000` | `/v1/models/status` |
-| OSaurus | `http://localhost:1337` | `/api/tags` |
+| Provider  | Default URL              | Discovery endpoint  |
+| --------- | ------------------------ | ------------------- |
+| Ollama    | `http://localhost:11434` | `/api/tags`         |
+| LM Studio | `http://localhost:1234`  | `/api/v1/models`    |
+| OMLX      | `http://localhost:8000`  | `/v1/models/status` |
+| OSaurus   | `http://localhost:1337`  | `/api/tags`         |
 
 Set `<PROVIDER>_BASE_URL` to override a default server URL, and optionally set
 `<PROVIDER>_API_KEY` when a local server requires authentication. Ollama and
@@ -31,6 +26,7 @@ original project's spelling.
 ```bash
 bun install
 bun run typecheck
+bun run lint
 bun run test
 bun run build
 ```

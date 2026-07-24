@@ -9,11 +9,13 @@ describe("discoverLocalProviders", () => {
       }
       if (url === "http://localhost:1234/api/v1/models") {
         return jsonResponse({
-          models: [{
-            key: "local-model",
-            display_name: "Local Model",
-            max_context_length: 16_384,
-          }],
+          models: [
+            {
+              key: "local-model",
+              display_name: "Local Model",
+              max_context_length: 16_384,
+            },
+          ],
         });
       }
       if (url === "http://localhost:8000/v1/models/status") {
@@ -45,19 +47,42 @@ describe("discoverLocalProviders", () => {
       throw new Error(`Unexpected request: ${url}`);
     });
 
-    const configuration = await discoverLocalProviders({
-      OLLAMA_API_KEY: "ollama-token",
-      LMSTUDIO_API_KEY: "lmstudio-token",
-      OMLX_API_KEY: "omlx-token",
-      OSARAUS_API_KEY: "osaurus-token",
-      OSARAUS_CONTEXT_LENGTH: "8192",
-    }, fetchImplementation);
+    const configuration = await discoverLocalProviders(
+      {
+        OLLAMA_API_KEY: "ollama-token",
+        LMSTUDIO_API_KEY: "lmstudio-token",
+        OMLX_API_KEY: "omlx-token",
+        OSARAUS_API_KEY: "osaurus-token",
+        OSARAUS_CONTEXT_LENGTH: "8192",
+      },
+      fetchImplementation,
+    );
 
     expect(configuration.providers).toEqual([
-      { name: "ollama", baseUrl: "http://localhost:11434/v1", apiKey: "ollama-token", wireApi: "completions" },
-      { name: "lmstudio", baseUrl: "http://localhost:1234/v1", apiKey: "lmstudio-token", wireApi: "completions" },
-      { name: "omlx-local", baseUrl: "http://localhost:8000/v1", apiKey: "omlx-token", wireApi: "completions" },
-      { name: "osaurus", baseUrl: "http://localhost:1337/v1", apiKey: "osaurus-token", wireApi: "completions" },
+      {
+        name: "ollama",
+        baseUrl: "http://localhost:11434/v1",
+        apiKey: "ollama-token",
+        wireApi: "completions",
+      },
+      {
+        name: "lmstudio",
+        baseUrl: "http://localhost:1234/v1",
+        apiKey: "lmstudio-token",
+        wireApi: "completions",
+      },
+      {
+        name: "omlx",
+        baseUrl: "http://localhost:8000/v1",
+        apiKey: "omlx-token",
+        wireApi: "completions",
+      },
+      {
+        name: "osaurus",
+        baseUrl: "http://localhost:1337/v1",
+        apiKey: "osaurus-token",
+        wireApi: "completions",
+      },
     ]);
     expect(configuration.models).toMatchObject([
       { id: "qwen3:8b", provider: "ollama", name: "Qwen 3 8B" },
@@ -70,7 +95,7 @@ describe("discoverLocalProviders", () => {
       },
       {
         id: "mlx-vlm",
-        provider: "omlx-local",
+        provider: "omlx",
         name: "MLX Vision Model",
         maxContextWindowTokens: 65_536,
         maxOutputTokens: 16_384,
