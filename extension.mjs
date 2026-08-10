@@ -106,7 +106,7 @@ async function discoverOmlx(environment, fetchImplementation) {
   if (!isRecord(payload) || !Array.isArray(payload.models))
     return;
   const models = payload.models.flatMap((model) => {
-    if (!isRecord(model) || typeof model.id !== "string" || model.model_type !== "llm" && model.model_type !== "vlm" || model.engine_type === "batched")
+    if (!isRecord(model) || typeof model.id !== "string" || model.model_type !== "llm" && model.model_type !== "vlm")
       return [];
     const contextWindow = positiveInteger(model.max_context_window) ?? DEFAULT_CONTEXT_WINDOW_TOKENS;
     return [

@@ -31,8 +31,7 @@ export async function discoverOmlx(
     if (
       !isRecord(model) ||
       typeof model.id !== "string" ||
-      (model.model_type !== "llm" && model.model_type !== "vlm") ||
-      model.engine_type === "batched"
+      (model.model_type !== "llm" && model.model_type !== "vlm")
     )
       return [];
 
