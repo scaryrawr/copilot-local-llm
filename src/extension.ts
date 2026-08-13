@@ -1,10 +1,10 @@
 import { joinSession } from "@github/copilot-sdk/extension";
 import { discoverLocalProviders } from "./local-providers.ts";
 
-const configuration = await discoverLocalProviders();
 const session = await joinSession();
 
-void (async () => {
+if ((await session.rpc.metadata.snapshot()).clientName === "github/cli") {
+  const configuration = await discoverLocalProviders();
   try {
     const result = await session.rpc.provider.add(configuration);
     await session.log(`Registered ${result.models.length} local model(s).`, {
@@ -17,4 +17,4 @@ void (async () => {
       { level: "error", ephemeral: true },
     );
   }
-})();
+}
