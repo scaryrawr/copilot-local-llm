@@ -1,9 +1,9 @@
 import type { NamedProviderConfig, ProviderModelConfig } from "@github/copilot-sdk";
-import { discoverLmStudio, LMSTUDIO_PROVIDER_NAME } from "./providers/lmstudio.js";
-import { discoverOllama, OLLAMA_PROVIDER_NAME } from "./providers/ollama.js";
-import { discoverOmlx, OMLX_PROVIDER_NAME } from "./providers/omlx.js";
-import { discoverOsaurus, OSAURUS_PROVIDER_NAME } from "./providers/osaurus.js";
-import type { FetchImplementation, LocalProvider } from "./providers/types.js";
+import { discoverLmStudio, LMSTUDIO_PROVIDER_NAME } from "./providers/lmstudio.ts";
+import { discoverOllama, OLLAMA_PROVIDER_NAME } from "./providers/ollama.ts";
+import { discoverOmlx, OMLX_PROVIDER_NAME } from "./providers/omlx.ts";
+import { discoverOsaurus, OSAURUS_PROVIDER_NAME } from "./providers/osaurus.ts";
+import type { FetchImplementation, LocalProvider } from "./providers/types.ts";
 
 interface LocalProviderConfiguration {
   providers: NamedProviderConfig[];

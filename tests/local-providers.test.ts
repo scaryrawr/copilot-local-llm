@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { discoverLocalProviders } from "../src/local-providers.js";
+import { discoverLocalProviders } from "../src/local-providers.ts";
 
 describe("discoverLocalProviders", () => {
   it("registers models returned by each supported local server", async () => {
@@ -100,6 +100,11 @@ describe("discoverLocalProviders", () => {
         maxContextWindowTokens: 65_536,
         maxOutputTokens: 16_384,
         capabilities: { supports: { vision: true } },
+      },
+      {
+        id: "mlx-helper",
+        provider: "omlx",
+        name: "mlx-helper",
       },
       {
         id: "osaurus-model",

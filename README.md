@@ -24,9 +24,8 @@ original project's spelling.
 ## Development
 
 ```bash
-bun install
-bun run typecheck
-bun run lint
-bun run test
-bun run build
+npm install
+npm run typecheck
+npm run lint
+npm test
 ```

@@ -8,7 +8,7 @@ import {
   positiveInteger,
   providerConfig,
   type FetchImplementation,
-} from "./types.js";
+} from "./types.ts";
 
 export const LMSTUDIO_PROVIDER_NAME = "lmstudio";
 

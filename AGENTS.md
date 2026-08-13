@@ -10,26 +10,24 @@ timeouts, parsing, and model configuration helpers belong in
 `src/providers/types.ts`. `src/local-providers.ts` aggregates the adapters.
 
 Tests live in `tests/`, currently centered on discovery with injected
-environment and `fetch` implementations. `build.ts` bundles
-`src/extension.ts` to the generated root-level `extension.mjs`; edit source,
-not that artifact.
+environment and `fetch` implementations. The root-level `extension.mjs` loads `src/extension.ts` directly using Node's
+built-in type stripping.
 
 ## Build, Test, and Development Commands
 
-Use Bun and the checked-in `bun.lock`:
+Use npm and the checked-in `package-lock.json`:
 
 ```bash
-bun install
-bun run typecheck
-bun run lint
-bun run test
-bun run build
+npm install
+npm run typecheck
+npm run lint
+npm test
 ```
 
-Run a focused test with `bunx vitest run tests/local-providers.test.ts`.
-Use `bun run format:check` to verify formatting; `bun run format` rewrites
-files. Before handing off a code change, run typecheck, lint, tests, and build
-in that order.
+Run a focused test with `npx vitest run tests/local-providers.test.ts`.
+Use `npm run format:check` to verify formatting; `npm run format` rewrites
+files. Before handing off a code change, run typecheck, lint, and tests in that
+order.
 
 ## Coding Style & Naming Conventions
 

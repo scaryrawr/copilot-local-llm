@@ -1,5 +1,5 @@
 import { joinSession } from "@github/copilot-sdk/extension";
-import { discoverLocalProviders } from "./local-providers.js";
+import { discoverLocalProviders } from "./local-providers.ts";
 
 const configuration = await discoverLocalProviders();
 const session = await joinSession();
