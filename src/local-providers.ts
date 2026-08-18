@@ -1,4 +1,5 @@
 import type { NamedProviderConfig, ProviderModelConfig } from "@github/copilot-sdk";
+import { discoverGeniex, GENIEX_PROVIDER_NAME } from "./providers/geniex.ts";
 import { discoverLmStudio, LMSTUDIO_PROVIDER_NAME } from "./providers/lmstudio.ts";
 import { discoverOllama, OLLAMA_PROVIDER_NAME } from "./providers/ollama.ts";
 import { discoverOmlx, OMLX_PROVIDER_NAME } from "./providers/omlx.ts";
@@ -15,6 +16,7 @@ const LOCAL_PROVIDER_DISCOVERERS = {
   [LMSTUDIO_PROVIDER_NAME]: discoverLmStudio,
   [OMLX_PROVIDER_NAME]: discoverOmlx,
   [OSAURUS_PROVIDER_NAME]: discoverOsaurus,
+  [GENIEX_PROVIDER_NAME]: discoverGeniex,
 } as const;
 
 export type LocalProviderName = keyof typeof LOCAL_PROVIDER_DISCOVERERS;

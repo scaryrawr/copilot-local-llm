@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { discoverLocalProviders } from "../src/local-providers.ts";
+import { discoverGeniex } from "../src/providers/geniex.ts";
 
 describe("discoverLocalProviders", () => {
   it("registers models returned by each supported local server", async () => {
@@ -43,6 +44,12 @@ describe("discoverLocalProviders", () => {
       if (url === "http://localhost:1337/api/tags") {
         return jsonResponse({ models: [{ name: "osaurus-model" }] });
       }
+      if (url === "http://127.0.0.1:18181/v1/models") {
+        return jsonResponse({
+          object: "list",
+          data: [{ id: "ai-hub-models/Qwen3-4B-Instruct-2507", object: "model" }],
+        });
+      }
 
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -54,6 +61,8 @@ describe("discoverLocalProviders", () => {
         OMLX_API_KEY: "omlx-token",
         OSARAUS_API_KEY: "osaurus-token",
         OSARAUS_CONTEXT_LENGTH: "8192",
+        GENIEX_API_KEY: "geniex-token",
+        GENIEX_CONTEXT_LENGTH: "32768",
       },
       fetchImplementation,
     );
@@ -81,6 +90,12 @@ describe("discoverLocalProviders", () => {
         name: "osaurus",
         baseUrl: "http://localhost:1337/v1",
         apiKey: "osaurus-token",
+        wireApi: "completions",
+      },
+      {
+        name: "geniex",
+        baseUrl: "http://127.0.0.1:18181/v1",
+        apiKey: "geniex-token",
         wireApi: "completions",
       },
     ]);
@@ -112,6 +127,13 @@ describe("discoverLocalProviders", () => {
         maxContextWindowTokens: 8_192,
         maxOutputTokens: 2_048,
       },
+      {
+        id: "ai-hub-models/Qwen3-4B-Instruct-2507",
+        provider: "geniex",
+        name: "ai-hub-models/Qwen3-4B-Instruct-2507",
+        maxContextWindowTokens: 32_768,
+        maxOutputTokens: 8_192,
+      },
     ]);
     expect(fetchImplementation).toHaveBeenCalledWith(
       "http://localhost:11434/api/tags",
@@ -129,6 +151,10 @@ describe("discoverLocalProviders", () => {
       "http://localhost:1337/api/tags",
       expect.objectContaining({ headers: { Authorization: "Bearer osaurus-token" } }),
     );
+    expect(fetchImplementation).toHaveBeenCalledWith(
+      "http://127.0.0.1:18181/v1/models",
+      expect.objectContaining({ headers: { Authorization: "Bearer geniex-token" } }),
+    );
   });
 
   it("skips unavailable local servers without preventing the extension from joining", async () => {
@@ -141,7 +167,39 @@ describe("discoverLocalProviders", () => {
       providers: [],
       models: [],
     });
-    expect(warning).toHaveBeenCalledTimes(4);
+    expect(warning).toHaveBeenCalledTimes(5);
+  });
+
+  it("normalizes GenieX overrides and ignores malformed model entries", async () => {
+    const fetchImplementation = vi.fn(async (url: string, _init?: RequestInit) => {
+      expect(url).toBe("http://geniex.local:18182/v1/models");
+      return jsonResponse({
+        data: [{ id: "valid-model" }, { id: 123 }, null],
+      });
+    });
+
+    await expect(
+      discoverGeniex(
+        {
+          GENIEX_BASE_URL: "http://geniex.local:18182/",
+        },
+        fetchImplementation,
+      ),
+    ).resolves.toMatchObject({
+      provider: {
+        name: "geniex",
+        baseUrl: "http://geniex.local:18182/v1",
+        apiKey: "geniex",
+      },
+      models: [
+        {
+          id: "valid-model",
+          provider: "geniex",
+          maxContextWindowTokens: 65_536,
+          maxOutputTokens: 16_384,
+        },
+      ],
+    });
   });
 });
 
