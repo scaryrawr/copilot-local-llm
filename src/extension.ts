@@ -3,7 +3,7 @@ import { discoverLocalProviders } from "./local-providers.ts";
 
 const session = await joinSession();
 
-if ((await session.rpc.metadata.snapshot()).clientName === "github/cli") {
+if (!(await session.rpc.metadata.snapshot()).isRemote) {
   const configuration = await discoverLocalProviders();
   try {
     const result = await session.rpc.provider.add(configuration);
